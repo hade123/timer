@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnOpenDevSettings: Button
     private lateinit var btnEnableLocation: Button
     private lateinit var btnDiagnose: Button
+    private lateinit var btnWhoUses: Button
     private lateinit var btnFenceToggle: Button
     private lateinit var tvFenceStatus: TextView
     private lateinit var spinnerPreset: Spinner
@@ -180,6 +181,7 @@ class MainActivity : AppCompatActivity() {
         btnOpenDevSettings = findViewById(R.id.btnOpenDevSettings)
         btnEnableLocation = findViewById(R.id.btnEnableLocation)
         btnDiagnose = findViewById(R.id.btnDiagnose)
+        btnWhoUses = findViewById(R.id.btnWhoUses)
         btnFenceToggle = findViewById(R.id.btnFenceToggle)
         tvFenceStatus = findViewById(R.id.tvFenceStatus)
         spinnerPreset = findViewById(R.id.spinnerPreset)
@@ -211,6 +213,7 @@ class MainActivity : AppCompatActivity() {
 
         btnEnableLocation.setOnClickListener { enableLocationViaShizuku() }
         btnDiagnose.setOnClickListener { showDiagnostics() }
+        btnWhoUses.setOnClickListener { showLocationUsers() }
         btnFenceToggle.setOnClickListener { toggleFence() }
 
         btnStart.setOnClickListener { startMocking() }
@@ -341,6 +344,52 @@ class MainActivity : AppCompatActivity() {
                 showLongDialog("Diagnostics", header.toString() + sysCheck.toString())
             }
         }.start()
+    }
+
+    private fun showLocationUsers() {
+        val rs = remoteService
+        if (rs == null) {
+            toast("Connect Shizuku first")
+            return
+        }
+        toast("Reading the system location log...")
+        Thread {
+            val raw = try {
+                rs.execShell("dumpsys location | grep -v '^[[:space:]]*$' | head -c 250000")
+            } catch (e: Throwable) { "error: ${e.message}" }
+            val installed = try { rs.execShell("pm list packages") } catch (e: Throwable) { "" }
+                .lineSequence()
+                .map { it.trim().removePrefix("package:") }
+                .filter { it.isNotEmpty() }
+                .toHashSet()
+            val report = try {
+                LocationUsageParser.buildReport(LocationUsageParser.parse(raw, installed, packageName))
+            } catch (e: Throwable) { "Could not read the log: ${e.message}\n" }
+            runOnUiThread { showUsersDialog(report, raw) }
+        }.start()
+    }
+
+    private fun showUsersDialog(report: String, raw: String) {
+        val sv = android.widget.ScrollView(this)
+        val tv = TextView(this).apply {
+            text = report
+            textSize = 12f
+            setPadding(40, 24, 40, 24)
+            setTextIsSelectable(true)
+            typeface = android.graphics.Typeface.MONOSPACE
+        }
+        sv.addView(tv)
+        AlertDialog.Builder(this)
+            .setTitle("Who is using location")
+            .setView(sv)
+            .setNeutralButton("Copy full report") { _, _ ->
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val full = report + "\n----- dumpsys location -----\n" + raw.take(120000)
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("location report", full))
+                toast("Copied. Paste it in your chat.")
+            }
+            .setPositiveButton("Close", null)
+            .show()
     }
 
     private fun showLongDialog(title: String, body: String) {

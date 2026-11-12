@@ -102,6 +102,15 @@
                 android:text="Diagnostics" />
         </LinearLayout>
 
+        <Button
+            android:id="@+id/btnWhoUses"
+            style="@style/SecondaryBtn"
+            android:layout_width="match_parent"
+            android:layout_marginStart="0dp"
+            android:layout_marginTop="4dp"
+            android:backgroundTint="#5E35B1"
+            android:text="Who is using location" />
+
         <!-- 步骤 3：坐标 -->
         <TextView
             style="@style/CardTitle"

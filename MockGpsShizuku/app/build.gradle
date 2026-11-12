@@ -9,8 +9,8 @@ android {
         applicationId "com.mockgps.shizuku"
         minSdk 26
         targetSdk 34
-        versionCode 4
-        versionName "1.2-en"
+        versionCode 5
+        versionName "1.3-en"
     }
 
     buildTypes {
