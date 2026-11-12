@@ -5,6 +5,9 @@ on:
     branches: [fake-gps-build]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,9 +35,11 @@ jobs:
         run: |
           cp MockGpsShizuku/app/build/outputs/apk/debug/app-debug.apk MockGpsShizuku.apk
           cp AmiMockGps/app/build/outputs/apk/debug/app-debug.apk AmiMockGps.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: fake-gps-apks
-          path: |
-            MockGpsShizuku.apk
-            AmiMockGps.apk
+      - name: Save APKs to apk-output branch
+        run: |
+          mkdir out && cp MockGpsShizuku.apk AmiMockGps.apk out/
+          cd out
+          git init -q -b apk-output
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "APKs from run ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" apk-output
