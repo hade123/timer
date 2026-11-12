@@ -105,10 +105,10 @@ class MockGpsForegroundService : Service() {
             if (nm.getNotificationChannel(CHANNEL_ID) == null) {
                 val ch = NotificationChannel(
                     CHANNEL_ID,
-                    "虚拟定位运行状态",
+                    "Fake location status",
                     NotificationManager.IMPORTANCE_LOW,
                 )
-                ch.description = "保持虚拟定位在后台运行"
+                ch.description = "Keeps fake location running in the background"
                 nm.createNotificationChannel(ch)
             }
         }
@@ -127,8 +127,8 @@ class MockGpsForegroundService : Service() {
             Notification.Builder(this)
         }
         return builder
-            .setContentTitle("虚拟定位运行中")
-            .setContentText(String.format("当前坐标 %.6f, %.6f", lat, lng))
+            .setContentTitle("Fake location running")
+            .setContentText(String.format("Current %.6f, %.6f", lat, lng))
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setOngoing(true)
             .setContentIntent(pi)

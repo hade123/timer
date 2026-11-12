@@ -57,13 +57,13 @@ object ShizukuHelper {
 
     fun statusDescription(status: Status): String = when (status) {
         Status.NOT_INSTALLED ->
-            "未检测到 Shizuku APP。\n请前往 GitHub 下载安装：\n${DOWNLOAD_URL}"
+            "Shizuku app not found.\nDownload it from GitHub:\n${DOWNLOAD_URL}"
         Status.NOT_RUNNING ->
-            "Shizuku 已安装但未运行。\n请打开 Shizuku APP 并按提示用 ADB 启动服务。"
+            "Shizuku is installed but not running.\nOpen the Shizuku app and start it (ADB / wireless debugging)."
         Status.NEED_PERMISSION ->
-            "Shizuku 已运行但未授权本 APP。\n点击「申请 Shizuku 权限」并在弹窗中选择「允许」"
+            "Shizuku is running but this app is not allowed.\nTap \"Request Shizuku permission\" and choose \"Allow\"."
         Status.READY ->
-            "Shizuku 就绪 ✓"
+            "Shizuku ready ✓"
     }
 
     fun bindUserService(context: Context, connection: ServiceConnection) {

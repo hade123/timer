@@ -62,9 +62,9 @@ class MainActivity : AppCompatActivity() {
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             LocationFenceVpnService.start(this)
-            toast("已启动 GPS 围栏 VPN")
+            toast("GPS fence VPN started")
         } else {
-            toast("用户拒绝了 VPN 授权，无法启动 GPS 围栏")
+            toast("VPN permission denied, cannot start GPS fence")
         }
         refreshAllStatus()
     }
@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
             remoteService = service.toMockGpsService()
             runOnUiThread {
                 refreshAllStatus()
-                toast("Shizuku 服务已连接")
+                toast("Shizuku service connected")
             }
         }
 
@@ -90,10 +90,10 @@ class MainActivity : AppCompatActivity() {
         if (reqCode == ShizukuHelper.REQUEST_PERMISSION_CODE) {
             runOnUiThread {
                 if (result == PackageManager.PERMISSION_GRANTED) {
-                    toast("Shizuku 已授权")
+                    toast("Shizuku permission granted")
                     bindRemoteIfPossible()
                 } else {
-                    toast("Shizuku 授权被拒绝")
+                    toast("Shizuku permission denied")
                 }
                 refreshAllStatus()
             }
@@ -193,11 +193,11 @@ class MainActivity : AppCompatActivity() {
         btnShizukuPermit.setOnClickListener {
             when (ShizukuHelper.checkStatus(this)) {
                 ShizukuHelper.Status.NOT_INSTALLED -> {
-                    toast("请先安装 Shizuku")
+                    toast("Please install Shizuku first")
                     openUrl(ShizukuHelper.DOWNLOAD_URL)
                 }
                 ShizukuHelper.Status.NOT_RUNNING -> {
-                    toast("请先在 Shizuku APP 启动服务（ADB / 无线 ADB / Root）")
+                    toast("Start the service in the Shizuku app first (ADB / wireless ADB / root)")
                     openShizukuApp()
                 }
                 ShizukuHelper.Status.NEED_PERMISSION -> ShizukuHelper.requestPermission()
@@ -245,7 +245,7 @@ class MainActivity : AppCompatActivity() {
         try {
             ShizukuHelper.bindUserService(this, shizukuConnection)
         } catch (e: Throwable) {
-            toast("绑定 Shizuku UserService 失败：${e.message}")
+            toast("Failed to bind Shizuku service: ${e.message}")
         }
     }
 
@@ -253,11 +253,11 @@ class MainActivity : AppCompatActivity() {
         val rs = remoteService
         if (rs == null) {
             AlertDialog.Builder(this)
-                .setTitle("Shizuku 未连接")
-                .setMessage("请先点击「① 申请 Shizuku 权限」并等待绿色「就绪」提示后再试。\n\n" +
-                        "如果不想用 Shizuku，可以点最下方「打开开发者选项」手动设置：\n" +
-                        "  → 选择模拟位置信息应用 → 选「虚拟定位 (Shizuku)」")
-                .setPositiveButton("好") { d, _ -> d.dismiss() }
+                .setTitle("Shizuku not connected")
+                .setMessage("First tap \"① Request Shizuku permission\" and wait for the green \"ready\" status, then try again.\n\n" +
+                        "Without Shizuku, tap \"Developer options\" and set it manually:\n" +
+                        "  → Select mock location app → \"Fake GPS (Shizuku)\"")
+                .setPositiveButton("OK") { d, _ -> d.dismiss() }
                 .show()
             return
         }
@@ -265,8 +265,8 @@ class MainActivity : AppCompatActivity() {
             val code = try { rs.grantMockLocation(packageName) } catch (e: Throwable) { -1 }
             val q = try { rs.queryMockLocation(packageName) } catch (e: Throwable) { e.message ?: "" }
             runOnUiThread {
-                if (code == 0) toast("已授予 mock_location 权限") else toast("授权失败 (code=$code)")
-                tvMockOpsStatus.text = "mock_location 状态:\n$q"
+                if (code == 0) toast("mock_location permission granted") else toast("Grant failed (code=$code)")
+                tvMockOpsStatus.text = "mock_location status:\n$q"
                 refreshAllStatus()
             }
         }.start()
@@ -275,7 +275,7 @@ class MainActivity : AppCompatActivity() {
     private fun enableLocationViaShizuku() {
         val rs = remoteService
         if (rs == null) {
-            toast("请先连接 Shizuku")
+            toast("Connect Shizuku first")
             return
         }
         Thread {
@@ -283,7 +283,7 @@ class MainActivity : AppCompatActivity() {
             val mode = try { rs.queryLocationMode() } catch (e: Throwable) { e.message ?: "" }
             runOnUiThread {
                 if (code == 0) {
-                    toast("已打开系统定位（mode=$mode）")
+                    toast("System location turned on (mode=$mode)")
                     // 系统定位主开关 OFF→ON 时，部分 ROM 会清空 test provider，
                     // 这里如果服务已在跑，强制重启注入循环以重新注册。
                     if (MockGpsForegroundService.isRunning()) {
@@ -293,12 +293,12 @@ class MainActivity : AppCompatActivity() {
                         // 给系统 200ms 处理 stopService
                         window.decorView.postDelayed({
                             MockGpsForegroundService.startService(this, la, ln, acc)
-                            toast("已重新注册虚拟 provider")
+                            toast("Fake provider re-registered")
                             refreshAllStatus()
                         }, 200)
                     }
                 } else {
-                    toast("打开失败 (code=$code)，请去「设置 → 位置信息」手动打开")
+                    toast("Failed (code=$code). Turn on Location manually in Settings")
                     openSystemLocationSettings()
                 }
                 refreshAllStatus()
@@ -312,13 +312,13 @@ class MainActivity : AppCompatActivity() {
         val (la, ln) = MockGpsForegroundService.providerInstance(this).currentLatLng()
 
         val header = StringBuilder()
-            .append("== 应用状态 ==\n")
-            .append("• 注入循环: ${if (running) "● 运行中" else "○ 未运行"}\n")
-            .append("• 当前坐标: ${"%.6f".format(la)}, ${"%.6f".format(ln)}\n")
-            .append("• 推送频率: 2 Hz (500ms / 次)\n\n")
+            .append("== App status ==\n")
+            .append("• Injection loop: ${if (running) "● Running" else "○ Stopped"}\n")
+            .append("• Current coordinates: ${"%.6f".format(la)}, ${"%.6f".format(ln)}\n")
+            .append("• Update rate: 2 Hz (every 500 ms)\n\n")
 
         if (rs == null) {
-            showLongDialog("诊断", header.toString() + "Shizuku 未连接，无法 dumpsys。")
+            showLongDialog("Diagnostics", header.toString() + "Shizuku not connected, cannot run dumpsys.")
             return
         }
         Thread {
@@ -326,19 +326,19 @@ class MainActivity : AppCompatActivity() {
             val locMode = try { rs.queryLocationMode() } catch (e: Throwable) { e.message ?: "" }
             val dump = try { rs.dumpLocation() } catch (e: Throwable) { e.message ?: "" }
             val sysCheck = StringBuilder()
-                .append("== 系统状态（来自 Shizuku）==\n")
+                .append("== System status (via Shizuku) ==\n")
                 .append("• mock_location AppOps:\n  $mockOps\n")
-                .append("• 系统定位主开关 location_mode = $locMode  (3=高精度, 0=关闭)\n\n")
-                .append("== dumpsys location 关键段落 ==\n")
-                .append(dump.ifBlank { "(空)" })
-                .append("\n\n== 高德/百度 仍读真位置时的检查 ==\n")
-                .append("1. location_mode 必须是 3（不是 0/1/2）\n")
-                .append("2. mock_location AppOps 必须是 allow\n")
-                .append("3. dumpsys 中 gps provider 那一行应有 'mock=true' 或 'TestProvider'\n")
-                .append("4. 关掉 Wi-Fi + 移动数据再开高德测一次（绕开自家网络定位）\n")
-                .append("5. 高德进入「我 → 设置 → 通用 → 定位 → 仅 GPS」")
+                .append("• System location_mode = $locMode  (3 = high accuracy, 0 = off)\n\n")
+                .append("== dumpsys location (key parts) ==\n")
+                .append(dump.ifBlank { "(empty)" })
+                .append("\n\n== If map apps still show your real location ==\n")
+                .append("1. location_mode must be 3 (not 0/1/2)\n")
+                .append("2. mock_location AppOps must be allow\n")
+                .append("3. The gps provider line in dumpsys should show 'mock=true' or 'TestProvider'\n")
+                .append("4. Turn off Wi-Fi + mobile data and test the map app again\n")
+                .append("5. In the map app, set location mode to \"GPS only\" if available")
             runOnUiThread {
-                showLongDialog("诊断", header.toString() + sysCheck.toString())
+                showLongDialog("Diagnostics", header.toString() + sysCheck.toString())
             }
         }.start()
     }
@@ -356,14 +356,14 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(title)
             .setView(sv)
-            .setPositiveButton("关闭", null)
+            .setPositiveButton("Close", null)
             .show()
     }
 
     private fun toggleFence() {
         if (LocationFenceVpnService.isRunning) {
             LocationFenceVpnService.stop(this)
-            toast("已停止 GPS 围栏")
+            toast("GPS fence stopped")
             window.decorView.postDelayed({ refreshAllStatus() }, 300)
             return
         }
@@ -374,7 +374,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             // 已授权过
             LocationFenceVpnService.start(this)
-            toast("已启动 GPS 围栏 VPN")
+            toast("GPS fence VPN started")
             window.decorView.postDelayed({ refreshAllStatus() }, 300)
         }
     }
@@ -383,7 +383,7 @@ class MainActivity : AppCompatActivity() {
         try {
             startActivity(Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
         } catch (_: Exception) {
-            toast("请到「设置 → 位置信息」手动打开")
+            toast("Turn on Location manually in Settings")
         }
     }
 
@@ -392,7 +392,7 @@ class MainActivity : AppCompatActivity() {
         val lng = etLng.text.toString().toDoubleOrNull()
         val acc = etAccuracy.text.toString().toFloatOrNull() ?: 1f
         if (lat == null || lng == null || lat !in -90.0..90.0 || lng !in -180.0..180.0) {
-            toast("经纬度无效")
+            toast("Invalid latitude/longitude")
             return
         }
         ensureLocationPermission()
@@ -401,19 +401,19 @@ class MainActivity : AppCompatActivity() {
         // 高德/百度只有在主开关开启后才会读取我们的 mock 坐标。
         if (!isSystemLocationOn()) {
             AlertDialog.Builder(this)
-                .setTitle("系统定位主开关未打开")
-                .setMessage("addTestProvider 需要系统定位处于开启状态。\n\n" +
-                        "推荐让本 APP 通过 Shizuku 自动打开，避免 ROM 在打开瞬间清空 test provider。")
-                .setPositiveButton("通过 Shizuku 打开") { _, _ ->
+                .setTitle("System Location is off")
+                .setMessage("Fake location needs the system Location switch to be ON.\n\n" +
+                        "Recommended: let this app turn it on via Shizuku, so the phone does not reset the fake provider.")
+                .setPositiveButton("Turn on via Shizuku") { _, _ ->
                     enableLocationViaShizuku()
                     // enableLocationViaShizuku 成功后会自动重启服务（如果之前启动过）
                     // 这里再主动启动一次，覆盖「之前未启动」的场景
                     window.decorView.postDelayed({ doStartMockingNow(lat, lng, acc) }, 600)
                 }
-                .setNeutralButton("打开系统设置") { _, _ ->
+                .setNeutralButton("Open Settings") { _, _ ->
                     openSystemLocationSettings()
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show()
             return
         }
@@ -423,15 +423,15 @@ class MainActivity : AppCompatActivity() {
     private fun doStartMockingNow(lat: Double, lng: Double, acc: Float) {
         try {
             MockGpsForegroundService.startService(this, lat, lng, acc)
-            toast("已启动虚拟定位")
+            toast("Fake location started")
         } catch (e: SecurityException) {
             AlertDialog.Builder(this)
-                .setTitle("缺少 mock_location 权限")
-                .setMessage("addTestProvider 被系统拒绝。请确保以下任一条件满足：\n\n" +
-                        "（推荐）已通过 Shizuku 授权 mock_location\n" +
-                        "（手动）开发者选项 → 选择模拟位置应用 → 选本 APP")
-                .setPositiveButton("打开开发者选项") { _, _ -> openDeveloperOptions() }
-                .setNegativeButton("取消", null)
+                .setTitle("Missing mock_location permission")
+                .setMessage("The system refused fake location. Make sure one of these is true:\n\n" +
+                        "(Recommended) mock_location granted via Shizuku\n" +
+                        "(Manual) Developer options → Select mock location app → this app")
+                .setPositiveButton("Open Developer options") { _, _ -> openDeveloperOptions() }
+                .setNegativeButton("Cancel", null)
                 .show()
         }
         refreshAllStatus()
@@ -439,7 +439,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopMocking() {
         MockGpsForegroundService.stopService(this)
-        toast("已停止")
+        toast("Stopped")
         refreshAllStatus()
     }
 
@@ -458,7 +458,7 @@ class MainActivity : AppCompatActivity() {
 
         // mock ops 状态由远程服务异步查询；这里只更新「未连接」时的占位
         if (remoteService == null) {
-            tvMockOpsStatus.text = "mock_location 状态:\n（Shizuku 远程服务未连接）"
+            tvMockOpsStatus.text = "mock_location status:\n(Shizuku service not connected)"
             btnGrantMock.isEnabled = false
         } else {
             btnGrantMock.isEnabled = true
@@ -466,16 +466,16 @@ class MainActivity : AppCompatActivity() {
             Thread {
                 val q = try { remoteService?.queryMockLocation(packageName) ?: "" }
                 catch (e: Throwable) { e.message ?: "" }
-                runOnUiThread { tvMockOpsStatus.text = "mock_location 状态:\n$q" }
+                runOnUiThread { tvMockOpsStatus.text = "mock_location status:\n$q" }
             }.start()
         }
 
         val running = MockGpsForegroundService.isRunning()
         tvRunStatus.text = if (running) {
             val (lat, lng) = MockGpsForegroundService.providerInstance(this).currentLatLng()
-            "● 运行中  当前坐标 ${"%.6f".format(lat)}, ${"%.6f".format(lng)}"
+            "● Running  at ${"%.6f".format(lat)}, ${"%.6f".format(lng)}"
         } else {
-            "○ 未运行"
+            "○ Stopped"
         }
         btnStart.isEnabled = !running
         btnStop.isEnabled = running
@@ -483,11 +483,11 @@ class MainActivity : AppCompatActivity() {
         // GPS 围栏 (VpnService) 状态
         val fence = LocationFenceVpnService.isRunning
         tvFenceStatus.text = if (fence) {
-            "● GPS 围栏运行中  ${LocationFenceVpnService.stats()}"
+            "● GPS fence running  ${LocationFenceVpnService.stats()}"
         } else {
-            "○ GPS 围栏未运行 — 高德/百度可能仍走自家网络定位"
+            "○ GPS fence off — Amap/Baidu may still use their own network location"
         }
-        btnFenceToggle.text = if (fence) "停止 GPS 围栏" else "启动 GPS 围栏（拦截高德/百度网络定位）"
+        btnFenceToggle.text = if (fence) "Stop GPS fence" else "Start GPS fence (block Amap/Baidu network location)"
     }
 
     // -------- 持久化 --------
@@ -543,21 +543,21 @@ class MainActivity : AppCompatActivity() {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (_: Exception) {
-            toast("找不到浏览器，请手动访问 $url")
+            toast("No browser found. Please open $url manually")
         }
     }
 
     private fun openShizukuApp() {
         val pm = packageManager
         val launch = pm.getLaunchIntentForPackage("moe.shizuku.privileged.api")
-        if (launch != null) startActivity(launch) else toast("Shizuku 未安装")
+        if (launch != null) startActivity(launch) else toast("Shizuku is not installed")
     }
 
     private fun openDeveloperOptions() {
         try {
             startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
         } catch (_: Exception) {
-            toast("无法打开开发者选项，请手动进入「设置 → 系统 → 开发者选项」")
+            toast("Cannot open Developer options. Go to Settings → System → Developer options manually")
         }
     }
 
@@ -568,19 +568,19 @@ class MainActivity : AppCompatActivity() {
 private data class Preset(val label: String, val lat: Double, val lng: Double) {
     companion object {
         val ALL = listOf(
-            Preset("（自定义）", 0.0, 0.0),
-            Preset("北京 · 天安门", 39.908823, 116.397470),
-            Preset("上海 · 人民广场", 31.231706, 121.472644),
-            Preset("广州 · 珠江新城", 23.119741, 113.323289),
-            Preset("深圳 · 平安大厦", 22.536891, 114.057868),
-            Preset("杭州 · 西湖", 30.246802, 120.149408),
-            Preset("成都 · 春熙路", 30.658232, 104.081534),
-            Preset("武汉 · 黄鹤楼", 30.546306, 114.301946),
-            Preset("西安 · 钟楼", 34.260930, 108.943109),
-            Preset("香港 · 维多利亚港", 22.293108, 114.169276),
-            Preset("台北 · 101", 25.033964, 121.564468),
-            Preset("东京 · 涉谷", 35.658034, 139.701636),
-            Preset("纽约 · 时代广场", 40.758896, -73.985130),
+            Preset("(Custom)", 0.0, 0.0),
+            Preset("Beijing · Tiananmen", 39.908823, 116.397470),
+            Preset("Shanghai · People's Square", 31.231706, 121.472644),
+            Preset("Guangzhou · Zhujiang New Town", 23.119741, 113.323289),
+            Preset("Shenzhen · Ping An Finance Center", 22.536891, 114.057868),
+            Preset("Hangzhou · West Lake", 30.246802, 120.149408),
+            Preset("Chengdu · Chunxi Road", 30.658232, 104.081534),
+            Preset("Wuhan · Yellow Crane Tower", 30.546306, 114.301946),
+            Preset("Xi'an · Bell Tower", 34.260930, 108.943109),
+            Preset("Hong Kong · Victoria Harbour", 22.293108, 114.169276),
+            Preset("Taipei · 101", 25.033964, 121.564468),
+            Preset("Tokyo · Shibuya", 35.658034, 139.701636),
+            Preset("New York · Times Square", 40.758896, -73.985130),
         )
     }
 }

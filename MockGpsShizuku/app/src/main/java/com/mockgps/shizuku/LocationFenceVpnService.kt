@@ -82,7 +82,7 @@ class LocationFenceVpnService : VpnService() {
         private val passedCount = AtomicLong(0)
 
         fun stats(): String =
-            "已拦截 ${blockedCount.get()} 次 | 转发 ${passedCount.get()} 次"
+            "blocked ${blockedCount.get()} | forwarded ${passedCount.get()}"
 
         fun start(context: Context) {
             val i = Intent(context, LocationFenceVpnService::class.java).apply { action = ACTION_START }
@@ -128,7 +128,7 @@ class LocationFenceVpnService : VpnService() {
         startForeground(NOTI_ID, buildNotification())
 
         val builder = Builder()
-            .setSession("MockGps · 高德定位拦截")
+            .setSession("MockGps · location fence")
             .addAddress("10.7.7.7", 30)
             .addRoute("10.7.7.8", 32)
             .addDnsServer("10.7.7.8")
@@ -143,7 +143,7 @@ class LocationFenceVpnService : VpnService() {
             null
         }
         if (fd == null) {
-            Log.e(TAG, "VPN establish returned null (用户没授权 VpnService.prepare?)")
+            Log.e(TAG, "VPN establish returned null (VPN permission not granted?)")
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return
@@ -370,10 +370,10 @@ class LocationFenceVpnService : VpnService() {
             if (nm.getNotificationChannel(CHANNEL_ID) == null) {
                 val ch = NotificationChannel(
                     CHANNEL_ID,
-                    "高德/百度定位 API 拦截",
+                    "Amap/Baidu location blocking",
                     NotificationManager.IMPORTANCE_LOW,
                 )
-                ch.description = "通过 VpnService DNS 黑洞拦截高德/百度的网络定位 API"
+                ch.description = "Blocks Amap/Baidu network-location APIs via a DNS sinkhole"
                 nm.createNotificationChannel(ch)
             }
         }
@@ -391,8 +391,8 @@ class LocationFenceVpnService : VpnService() {
             @Suppress("DEPRECATION") Notification.Builder(this)
         }
         return builder
-            .setContentTitle("GPS 围栏运行中")
-            .setContentText("仅拦截高德/百度定位 API，其他网络不受影响")
+            .setContentTitle("GPS fence running")
+            .setContentText("Only Amap/Baidu location APIs are blocked; other traffic is unaffected")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setOngoing(true)
             .setContentIntent(pi)
